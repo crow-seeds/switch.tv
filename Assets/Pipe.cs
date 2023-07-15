@@ -51,7 +51,7 @@ public class Pipe : MonoBehaviour
 
             if (pressedSpace && transform.localPosition.y < 9f)
             {
-                rig.velocity = Vector2.up * 5f;
+                rig.velocity = Vector2.up * 7f;
                 rig.gravityScale = 2;
                 pressedSpace = false;
             }

@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class PokemonHandler : MonoBehaviour
 {
@@ -19,20 +20,52 @@ public class PokemonHandler : MonoBehaviour
     [SerializeField] GameObject optionsContainer;
     [SerializeField] List<SpriteRenderer> optionChoices;
 
+
+    [SerializeField] AudioClip anticipation;
+    [SerializeField] AudioClip rage;
+    [SerializeField] AudioClip success;
+    [SerializeField] Animator anim;
+    [SerializeField] MicrogameHandler mh;
+    [SerializeField] Image progressBar;
+    [SerializeField] Chat ch;
+    [SerializeField] AudioSource streamerAudio;
+
     bool canPlay = false;
     int currentChoice;
     int correctChoice;
+    float timer = 0;
+
+    bool canPressZ;
+
+    achivementHandler aHandler;
 
     // Start is called before the first frame update
     void Start()
     {
         StartCoroutine(intro());
         cam.backgroundColor = backgroundColor;
+
+        streamerAudio.clip = anticipation;
+        streamerAudio.Play();
+        ch.loadSubtitles(3, "normal");
+        aHandler = FindObjectOfType<achivementHandler>();
     }
 
     // Update is called once per frame
     void Update()
     {
+        timer += Time.deltaTime;
+        progressBar.fillAmount = timer / 18f;
+
+        if (canPressZ)
+        {
+            if (Input.GetKeyDown(KeyCode.Z))
+            {
+                streamerAudio.Stop();
+            }
+        }
+
+
         if (canPlay)
         {
             if (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.A) || Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.D))
@@ -98,15 +131,29 @@ public class PokemonHandler : MonoBehaviour
         caption3.SetActive(false);
         caption3part2.SetActive(false);
         caption4.SetActive(true);
-        if(currentChoice == correctChoice)
+        canPressZ = true;
+        if (currentChoice == correctChoice)
         {
             caption4.GetComponent<SpriteRenderer>().sprite = Resources.Load<Sprite>("Sprites/pokemon/captionFaint");
             enemyPokemon.GetComponent<SpriteRenderer>().sprite = Resources.Load<Sprite>("Sprites/pokemon/plingusdead");
+
+            anim.SetBool("lose", true);
+            streamerAudio.clip = rage;
+            streamerAudio.Play();
+            ch.loadSubtitles(3, "rage");
+            StartCoroutine(endingCo(true));
         }
         else
         {
             caption4.GetComponent<SpriteRenderer>().sprite = Resources.Load<Sprite>("Sprites/pokemon/captionCaught");
             enemyPokemon.GetComponent<SpriteRenderer>().sprite = Resources.Load<Sprite>("Sprites/pokemon/plingusball");
+
+            if (aHandler != null) { aHandler.unlockAchievement(2); }
+            anim.SetBool("win", true);
+            streamerAudio.clip = success;
+            streamerAudio.Play();
+            ch.loadSubtitles(3, "win");
+            StartCoroutine(endingCo(false));
         }
     }
 
@@ -146,5 +193,22 @@ public class PokemonHandler : MonoBehaviour
         }
 
         
+    }
+
+    IEnumerator endingCo(bool b)
+    {
+        StartCoroutine(skipWarning());
+        yield return new WaitWhile(() => streamerAudio.isPlaying);
+        Debug.Log("yessir");
+        mh.endMicroGame(b);
+    }
+
+    [SerializeField] Transform zToSkip;
+
+    IEnumerator skipWarning()
+    {
+        Instantiate(Resources.Load<GameObject>("Prefabs/Mover")).GetComponent<Mover>().set2(zToSkip, new Vector3(1, -4, -6), 1f);
+        yield return new WaitForSeconds(3f);
+        Instantiate(Resources.Load<GameObject>("Prefabs/Mover")).GetComponent<Mover>().set2(zToSkip, new Vector3(1, -6, -6), 1f);
     }
 }

@@ -70,7 +70,7 @@ public class Bird : MonoBehaviour
     public void killBird()
     {
         paused = true;
+        GetComponent<BoxCollider2D>().enabled = false;
         rig.velocity = Vector2.zero;
-        rig.gravityScale = 0;
     }
 }

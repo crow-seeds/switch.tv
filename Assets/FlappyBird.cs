@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class FlappyBird : MonoBehaviour
 {
@@ -8,6 +9,12 @@ public class FlappyBird : MonoBehaviour
     [SerializeField] Bird bird;
     [SerializeField] Camera cam;
     [SerializeField] Color backgroundColor;
+    [SerializeField] AudioClip normal;
+    [SerializeField] AudioClip rage;
+    [SerializeField] Animator anim;
+    [SerializeField] MicrogameHandler mh;
+    [SerializeField] Image progressBar;
+    [SerializeField] Chat ch;
     List<Pipe> pipeList = new List<Pipe>();
     float timer = 0;
     bool paused = false;
@@ -16,13 +23,36 @@ public class FlappyBird : MonoBehaviour
     void Start()
     {
         cam.backgroundColor = backgroundColor;
+        streamerAudio.clip = normal;
+        streamerAudio.Play();
+        ch.loadSubtitles(0, "normal");
         StartCoroutine(generatePipe());
     }
 
+    bool canPressZ = false;
     // Update is called once per frame
     void Update()
     {
-        
+        if (!paused)
+        {
+            timer += Time.deltaTime;
+            progressBar.fillAmount = timer / 12f;
+            if (timer > 12)
+            {
+                paused = true;
+                mh.endMicroGame(false);
+            }
+        }
+
+        if (canPressZ)
+        {
+            if (Input.GetKeyDown(KeyCode.Z))
+            {
+                streamerAudio.Stop();
+            }
+        }
+
+
     }
 
     IEnumerator generatePipe()
@@ -36,6 +66,8 @@ public class FlappyBird : MonoBehaviour
         
     }
 
+    [SerializeField] AudioSource streamerAudio;
+
     public void streamerDead()
     {
         paused = true;
@@ -47,5 +79,35 @@ public class FlappyBird : MonoBehaviour
             }
         }
         bird.killBird();
+        streamerAudio.clip = rage;
+        streamerAudio.Play();
+        anim.SetBool("rage", true);
+        ch.loadSubtitles(0, "rage");
+        StartCoroutine(endStream());
+    }
+
+    IEnumerator endStream()
+    {
+        canPressZ = true;
+        StartCoroutine(skipWarning());
+        yield return new WaitWhile(() => streamerAudio.isPlaying);
+        foreach (Pipe p in pipeList)
+        {
+            if (p != null)
+            {
+                Destroy(p.gameObject);
+            }
+        }
+        mh.endMicroGame(true);
+        
+    }
+
+    [SerializeField] Transform zToSkip;
+
+    IEnumerator skipWarning()
+    {
+        Instantiate(Resources.Load<GameObject>("Prefabs/Mover")).GetComponent<Mover>().set2(zToSkip, new Vector3(1, -4, -6), 1f);
+        yield return new WaitForSeconds(3f);
+        Instantiate(Resources.Load<GameObject>("Prefabs/Mover")).GetComponent<Mover>().set2(zToSkip, new Vector3(1, -6, -6), 1f);
     }
 }
